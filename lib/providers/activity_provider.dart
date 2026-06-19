@@ -82,60 +82,11 @@ class ActivityService {
     await _firestore.collection('activities').add(activity.toMap());
   }
 
-  /// Helper to seed mock activities for testing if needed
-  Future<void> seedMockActivities() async {
-    final authState = _ref.read(authStateNotifierProvider);
-    if (authState is! AuthAuthenticated) return;
-
-    final uid = authState.user.uid;
-    final batch = _firestore.batch();
-    final activitiesRef = _firestore.collection('activities');
-
-    final mockActivities = [
-      ActivityModel(
-        id: '',
-        userId: uid,
-        type: ActivityType.expenseAdded,
-        title: 'You added Grocery Expense',
-        description: 'Flatmates Group',
-        amount: 550.0,
-        groupName: 'Flatmates Group',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
-      ),
-      ActivityModel(
-        id: '',
-        userId: uid,
-        type: ActivityType.billImported,
-        title: 'Rahul added Internet Bill',
-        description: 'Flatmates Group',
-        amount: 200.0,
-        groupName: 'Flatmates Group',
-        timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-      ),
-      ActivityModel(
-        id: '',
-        userId: uid,
-        type: ActivityType.settlementCompleted,
-        title: 'You settled with Aman',
-        description: 'Weekend Chill',
-        amount: 300.0,
-        groupName: 'Weekend Chill',
-        timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-      ),
-    ];
-
-    for (var act in mockActivities) {
-      final newDoc = activitiesRef.doc();
-      batch.set(newDoc, act.toMap());
-    }
-
-    await batch.commit();
-  }
-
-  /// Clear all user activities (optional utility for testing)
+  /// Clears all activities for the current user
   Future<void> clearUserActivities() async {
     final authState = _ref.read(authStateNotifierProvider);
     if (authState is! AuthAuthenticated) return;
+
     final uid = authState.user.uid;
 
     final snapshot = await _firestore
@@ -144,9 +95,10 @@ class ActivityService {
         .get();
 
     final batch = _firestore.batch();
-    for (var doc in snapshot.docs) {
+    for (final doc in snapshot.docs) {
       batch.delete(doc.reference);
     }
+
     await batch.commit();
   }
 }

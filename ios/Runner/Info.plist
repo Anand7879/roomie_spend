@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to scan QR codes for joining groups</string>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to help you invite friends to join groups</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need photo library access to save QR codes</string>
 </dict>
 </plist>

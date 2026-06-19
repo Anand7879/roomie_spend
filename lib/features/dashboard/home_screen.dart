@@ -12,6 +12,11 @@ import '../../models/activity_model.dart';
 import '../../models/stats_model.dart';
 import '../onboarding/onboarding_screen.dart';
 import 'activity_history_screen.dart';
+import '../groups/create_group/create_group_screen.dart';
+import '../groups/group_details/group_details_screen.dart';
+import '../invites/scan_qr_screen.dart';
+import '../invites/join_by_code_screen.dart';
+import '../groups/groups_list_screen.dart';
 
 /// A premium production-ready roommate expense dashboard UI.
 /// Matches the exact designer specifications from the reference image.
@@ -887,12 +892,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildGroupsSlider(List<GroupModel> groups) {
     if (groups.isEmpty) {
-      return Container(
-        height: 110,
-        alignment: Alignment.center,
-        child: const Text('No groups yet. Tap Create Group to start!',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-      );
+      return _buildAddFriendsCard();
     }
 
     return Column(
@@ -1295,44 +1295,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () async {
-              try {
-                await ref
-                    .read(activityServiceProvider)
-                    .seedMockActivities();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('Seeded mock activities to Firestore!')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Failed to seed: $e'),
-                        backgroundColor: AppTheme.errorRed),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.bolt_rounded, size: 16),
-            label: const Text('Seed Test Activities',
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryPurple,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-          ),
         ],
       ),
     );
@@ -1478,7 +1440,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               final selected = i == _currentNavIndex;
 
               return GestureDetector(
-                onTap: () => setState(() => _currentNavIndex = i),
+                onTap: () {
+                  if (i == 1) {
+                    // Navigate to Groups screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const GroupsListScreen(),
+                      ),
+                    );
+                  } else if (i == 2) {
+                    // Analytics - Coming soon
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Analytics coming soon!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } else if (i == 3) {
+                    // Bills - Coming soon
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bills coming soon!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } else if (i == 4) {
+                    // Balances - Coming soon
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Balances coming soon!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } else {
+                    // Home - just update index
+                    setState(() => _currentNavIndex = i);
+                  }
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: selected
@@ -1765,182 +1763,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _openGroupDetail(BuildContext context, GroupModel group) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(group.imageUrl,
-                    style: const TextStyle(fontSize: 32)),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(group.name,
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary)),
-                    const SizedBox(height: 4),
-                    Text('${group.memberCount} members active',
-                        style:
-                            const TextStyle(color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text('Recent Group Actions:',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary)),
-            const SizedBox(height: 8),
-            Text(group.lastActivity,
-                style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontStyle: FontStyle.italic)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryPurple,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Open Room Chat & History'),
-              ),
-            ),
-          ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GroupDetailsScreen(
+          groupId: group.id,
+          groupName: group.groupName,
+          groupIcon: group.groupIcon,
         ),
       ),
     );
   }
 
   void _showCreateGroupDialog(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final emojis = ["🏠", "🌴", "💼", "🚗", "🏖️", "🎮", "🎸", "🍕"];
-    String selectedEmoji = emojis[0];
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setDs) => AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24)),
-          title: const Text('Create Roomie Group',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Group Name',
-                  hintText: 'e.g. Flatmates 402',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Choose Icon:',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold))),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: emojis.length,
-                  itemBuilder: (_, i) {
-                    final e = emojis[i];
-                    final isSel = e == selectedEmoji;
-                    return GestureDetector(
-                      onTap: () => setDs(() => selectedEmoji = e),
-                      child: Container(
-                        margin:
-                            const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isSel
-                              ? AppTheme.lightPurpleContainer
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSel
-                                ? AppTheme.primaryPurple
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(e,
-                            style: const TextStyle(fontSize: 18)),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: AppTheme.textSecondary)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                if (name.isEmpty) return;
-                Navigator.pop(ctx);
-                final newGroup = GroupModel(
-                  id: 'g_${DateTime.now().millisecondsSinceEpoch}',
-                  name: name,
-                  imageUrl: selectedEmoji,
-                  memberCount: 2,
-                  lastActivity: 'Group created just now',
-                  balance: 0.0,
-                );
-                ref.read(groupProvider.notifier).addGroup(newGroup);
-                await ref.read(activityServiceProvider).logActivity(
-                      type: ActivityType.groupCreated,
-                      title: 'You created Group: $name',
-                      description: 'Room group initialized',
-                      groupName: name,
-                    );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(
-                            'Group "$name" created and synced!')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPurple,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Create'),
-            ),
-          ],
-        ),
-      ),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CreateGroupScreen()),
     );
   }
 
@@ -2235,6 +2071,138 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             content: Text('Receipt scanned! Added Dinner bill ₹2450.')),
       );
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ADD FRIENDS CARD (when no groups)
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildAddFriendsCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEFF6FF), Color(0xFFF0F9FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFBAE6FD), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.accentGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.group_add_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add Your Friends First',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Start splitting expenses together',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Builder(
+                  builder: (ctx) => _buildInviteActionButton(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Scan QR',
+                    color: AppTheme.primaryPurple,
+                    onTap: () {
+                      Navigator.of(ctx).push(
+                        MaterialPageRoute(builder: (_) => const ScanQRScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Builder(
+                  builder: (ctx) => _buildInviteActionButton(
+                    icon: Icons.vpn_key_rounded,
+                    label: 'Enter Code',
+                    color: const Color(0xFF3B82F6),
+                    onTap: () {
+                      Navigator.of(ctx).push(
+                        MaterialPageRoute(builder: (_) => const JoinByCodeScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInviteActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

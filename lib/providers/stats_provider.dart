@@ -3,47 +3,32 @@ import '../models/stats_model.dart';
 import 'group_provider.dart';
 
 /// Notifier that manages statistics displayed on the Dashboard.
-/// Initialized with mockup data to match the designer specifications exactly.
+/// Calculates stats dynamically from real Firestore data.
 class StatsNotifier extends Notifier<DashboardStats> {
-  double _todaySpending = 4300.00;
-  double _monthlySpending = 12200.00;
-
   @override
   DashboardStats build() {
-    // Watch groupProvider
+    // Watch groupProvider to recalculate stats when groups change
     final groupsList = ref.watch(groupProvider);
 
-    double owe = 320.00;
-    double get = 4200.00;
-    int pending = 3;
+    double owe = 0.0;
+    double get = 0.0;
+    int pending = 0;
 
-    // If there is user modification, we can adjust.
-    // For visual consistency with the mockup, we fall back to the mockup values if the groups list
-    // matches the initial state, otherwise we calculate dynamically.
-    final bool isInitialState = groupsList.length == 3 &&
-        groupsList[0].balance == 2950.0 &&
-        groupsList[1].balance == -320.0 &&
-        groupsList[2].balance == 1200.0;
-
-    if (!isInitialState) {
-      owe = 0.0;
-      get = 0.0;
-      pending = 0;
-      for (final g in groupsList) {
-        if (g.balance < 0) {
-          owe += g.balance.abs();
-          pending++;
-        } else if (g.balance > 0) {
-          get += g.balance;
-          pending++;
-        }
+    // Calculate from real group data
+    for (final g in groupsList) {
+      if (g.balance < 0) {
+        owe += g.balance.abs();
+        pending++;
+      } else if (g.balance > 0) {
+        get += g.balance;
+        pending++;
       }
     }
 
     return DashboardStats(
-      todaySpending: _todaySpending,
-      monthlySpending: _monthlySpending,
-      activeGroups: isInitialState ? 4 : groupsList.length,
+      todaySpending: 0.0, // Will be updated when expenses are added
+      monthlySpending: 0.0, // Will be updated when expenses are added
+      activeGroups: groupsList.length,
       pendingSettlements: pending,
       youOwe: owe,
       youGet: get,
@@ -52,12 +37,9 @@ class StatsNotifier extends Notifier<DashboardStats> {
 
   /// Record a spending amount
   void addSpend(double amount) {
-    _todaySpending += amount;
-    _monthlySpending += amount;
-    
     state = state.copyWith(
-      todaySpending: _todaySpending,
-      monthlySpending: _monthlySpending,
+      todaySpending: state.todaySpending + amount,
+      monthlySpending: state.monthlySpending + amount,
     );
   }
 
