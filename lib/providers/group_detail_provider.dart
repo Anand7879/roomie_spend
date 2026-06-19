@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/group_model.dart';
+import '../models/expense_model.dart';
 import '../services/group_firestore_service.dart';
 import 'auth_provider.dart';
 
@@ -122,7 +123,7 @@ final createGroupProvider =
 // ─── Group Expenses Stream ────────────────────────────────────────────────
 
 final groupExpensesProvider = StreamProvider.autoDispose
-    .family<List<dynamic>, String>((ref, groupId) {
+    .family<List<ExpenseModel>, String>((ref, groupId) {
   return ref
       .read(groupFirestoreServiceProvider)
       .watchGroupExpenses(groupId);

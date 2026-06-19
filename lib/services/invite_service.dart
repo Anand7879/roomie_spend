@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'dart:math';
 import '../models/group_invite_model.dart';
 import '../models/group_model.dart';
@@ -9,7 +8,6 @@ import '../models/group_member_model.dart';
 /// Service for managing group invitations, QR codes, and invite links.
 class InviteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final Uuid _uuid = const Uuid();
 
   static const String _invitePrefix = 'RMSP';
   static const int _inviteDays = 7;

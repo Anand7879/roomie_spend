@@ -10,6 +10,7 @@ import '../../../models/expense_model.dart';
 import '../../../providers/group_detail_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../invites/invite_friends_screen.dart';
+import '../../add_expense/add_expense_page.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -107,15 +108,13 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen>
             ),
             // Tab 1 — Summary
             expensesAsync.when(
-              data: (expenses) => _buildSummaryTab(
-                  expenses.cast<ExpenseModel>(), group),
+              data: (expenses) => _buildSummaryTab(expenses, group),
               loading: () => _buildTabSkeleton(),
               error: (e, _) => _buildTabError(e),
             ),
             // Tab 2 — Balances
             expensesAsync.when(
-              data: (expenses) => _buildBalancesTab(
-                  expenses.cast<ExpenseModel>(), group),
+              data: (expenses) => _buildBalancesTab(expenses, group),
               loading: () => _buildTabSkeleton(),
               error: (e, _) => _buildTabError(e),
             ),
@@ -830,13 +829,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen>
   }
 
   void _showAddExpenseSheet(GroupModel group) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => _AddExpenseSheet(group: group, ref: ref),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddExpensePage(group: group),
+      ),
     );
   }
 }

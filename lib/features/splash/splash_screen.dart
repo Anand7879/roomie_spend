@@ -61,7 +61,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
     _initializeParticles();
 
     // Trigger local session checks immediately on boot
-    ref.read(authStateNotifierProvider.notifier).initializeSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(authStateNotifierProvider.notifier).initializeSession();
+      }
+    });
 
     // --- 1. Entrance Animations (Duration: 1.5 seconds) ---
     _entranceController = AnimationController(

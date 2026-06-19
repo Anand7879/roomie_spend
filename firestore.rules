@@ -1,86 +1,89 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is authenticated
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper function to check if user is group member
+
     function isGroupMember(groupId) {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
              request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
     }
-    
-    // Users collection
+
+    // ─── Users ───────────────────────────────────────────────────────────────
+
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read:   if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAuthenticated() && request.auth.uid == userId;
       allow delete: if false;
     }
-    
-    // Groups collection
+
+    // ─── Groups ──────────────────────────────────────────────────────────────
+
     match /groups/{groupId} {
-      allow read: if isAuthenticated() && 
-                     request.auth.uid in resource.data.members;
+      allow read:   if isAuthenticated() && request.auth.uid in resource.data.members;
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && 
-                       request.auth.uid in resource.data.members;
-      allow delete: if isAuthenticated() && 
-                       resource.data.createdBy == request.auth.uid;
-      
-      // Group members subcollection
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.members;
+      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+
+      // ── Group Members subcollection ─────────────────────────────────────
+
       match /members/{memberId} {
-        allow read: if isAuthenticated() && 
-                       request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow read:   if isGroupMember(groupId);
         allow create: if isAuthenticated();
-        allow update: if isAuthenticated() && 
-                         request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-        allow delete: if isAuthenticated() && 
-                         (request.auth.uid == resource.data.userId || 
+        allow update: if isGroupMember(groupId);
+        allow delete: if isAuthenticated() &&
+                         (request.auth.uid == resource.data.userId ||
+                          get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid);
+      }
+
+      // ── Group Expenses subcollection ────────────────────────────────────
+      // FIX: The app stores expenses at groups/{groupId}/expenses, not
+      // at the top-level /expenses collection. Rules must match this path.
+
+      match /expenses/{expenseId} {
+        allow read:   if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId);
+        allow update: if isGroupMember(groupId);
+        allow delete: if isAuthenticated() &&
+                         (resource.data.paidBy == request.auth.uid ||
                           get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid);
       }
     }
-    
-    // Group invites collection - CRITICAL FOR INVITE SYSTEM
+
+    // ─── Group Invites ────────────────────────────────────────────────────────
+    // FIX: verifyInviteCode() is called by users who are NOT yet group members
+    // (they haven't joined yet). Allow any authenticated user to READ an invite
+    // by its code so the join flow can work. Write operations remain restricted.
+
     match /groupInvites/{inviteId} {
-      // Allow reading own created invites
-      allow read: if isAuthenticated() && 
-                     (resource.data.createdBy == request.auth.uid ||
-                      request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.members);
-      
-      // Allow creating invites if user is group member
-      allow create: if isAuthenticated() && 
+      // Any signed-in user can read an invite (needed to verify the code before joining)
+      allow read:   if isAuthenticated();
+
+      // Only existing group members can create invites
+      allow create: if isAuthenticated() &&
                        request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members;
-      
-      // Allow updating invites (for marking as used)
+
+      // Any authenticated user can update (mark as used when joining)
       allow update: if isAuthenticated();
-      
-      // Allow deleting own invites or if group owner
-      allow delete: if isAuthenticated() && 
+
+      // Only the creator or group owner can delete
+      allow delete: if isAuthenticated() &&
                        (resource.data.createdBy == request.auth.uid ||
                         get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.createdBy == request.auth.uid);
     }
-    
-    // Activities collection
+
+    // ─── Activities ───────────────────────────────────────────────────────────
+
     match /activities/{activityId} {
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
+      allow read:   if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated();
       allow update: if false;
-      allow delete: if isAuthenticated() && 
-                       resource.data.userId == request.auth.uid;
-    }
-    
-    // Expenses collection (if you have it)
-    match /expenses/{expenseId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated() && 
-                       resource.data.createdBy == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }
