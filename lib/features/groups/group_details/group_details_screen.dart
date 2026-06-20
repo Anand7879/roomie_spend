@@ -11,6 +11,7 @@ import '../../../providers/group_detail_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../invites/invite_friends_screen.dart';
 import '../../add_expense/add_expense_page.dart';
+import 'group_settings_screen.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -294,7 +295,13 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen>
         'icon': Icons.settings_outlined,
         'label': 'Settings',
         'color': const Color(0xFF6B7280),
-        'onTap': () => _comingSoon('Settings'),
+        'onTap': () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => GroupSettingsScreen(group: group),
+            ),
+          );
+        },
       },
     ];
 

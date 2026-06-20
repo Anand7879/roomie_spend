@@ -62,6 +62,7 @@ class ActivityService {
     required String description,
     double? amount,
     required String groupName,
+    String? groupId,
   }) async {
     final authState = _ref.read(authStateNotifierProvider);
     if (authState is! AuthAuthenticated) return;
@@ -76,6 +77,7 @@ class ActivityService {
       description: description,
       amount: amount,
       groupName: groupName,
+      groupId: groupId ?? '',
       timestamp: DateTime.now(),
     );
 

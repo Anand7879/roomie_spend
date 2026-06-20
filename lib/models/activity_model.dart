@@ -10,7 +10,10 @@ enum ActivityType {
   settlementCompleted,
   reminderSent,
   billImported,
-  receiptScanned;
+  receiptScanned,
+  joinRequestCreated,
+  joinRequestApproved,
+  joinRequestDenied;
 
   /// Returns the corresponding display string for the type
   String get displayName {
@@ -33,6 +36,12 @@ enum ActivityType {
         return 'Bill Imported';
       case ActivityType.receiptScanned:
         return 'Receipt Scanned';
+      case ActivityType.joinRequestCreated:
+        return 'Join Request';
+      case ActivityType.joinRequestApproved:
+        return 'Join Approved';
+      case ActivityType.joinRequestDenied:
+        return 'Join Denied';
     }
   }
 
@@ -66,6 +75,15 @@ enum ActivityType {
       case 'receipt_scanned':
       case 'receiptscanned':
         return ActivityType.receiptScanned;
+      case 'join_request_created':
+      case 'joinrequestcreated':
+        return ActivityType.joinRequestCreated;
+      case 'join_request_approved':
+      case 'joinrequestapproved':
+        return ActivityType.joinRequestApproved;
+      case 'join_request_denied':
+      case 'joinrequestdenied':
+        return ActivityType.joinRequestDenied;
       default:
         return ActivityType.expenseAdded; // Default fallback
     }
@@ -92,6 +110,12 @@ enum ActivityType {
         return 'bill_imported';
       case ActivityType.receiptScanned:
         return 'receipt_scanned';
+      case ActivityType.joinRequestCreated:
+        return 'join_request_created';
+      case ActivityType.joinRequestApproved:
+        return 'join_request_approved';
+      case ActivityType.joinRequestDenied:
+        return 'join_request_denied';
     }
   }
 }
@@ -105,6 +129,7 @@ class ActivityModel {
   final String description;
   final double? amount;
   final String groupName;
+  final String groupId;
   final DateTime timestamp;
 
   ActivityModel({
@@ -115,6 +140,7 @@ class ActivityModel {
     required this.description,
     this.amount,
     required this.groupName,
+    required this.groupId,
     required this.timestamp,
   });
 
@@ -128,6 +154,7 @@ class ActivityModel {
       description: map['description'] ?? '',
       amount: map['amount'] != null ? (map['amount'] as num).toDouble() : null,
       groupName: map['groupName'] ?? '',
+      groupId: map['groupId'] ?? '',
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -141,6 +168,7 @@ class ActivityModel {
       'description': description,
       'amount': amount,
       'groupName': groupName,
+      'groupId': groupId,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }

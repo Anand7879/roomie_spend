@@ -129,15 +129,15 @@ class _SplitSheetState extends ConsumerState<SplitSheet>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.backgroundLight,
+            color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(12),
           ),
           child: TabBar(
             controller: _tabCtrl,
             labelColor: Colors.white,
-            unselectedLabelColor: AppTheme.textSecondary,
+            unselectedLabelColor: const Color(0xFF64748B),
             indicator: BoxDecoration(
-              color: AppTheme.primaryPurple,
+              color: const Color(0xFF6366F1),
               borderRadius: BorderRadius.circular(10),
             ),
             indicatorSize: TabBarIndicatorSize.tab,
@@ -163,14 +163,16 @@ class _SplitSheetState extends ConsumerState<SplitSheet>
         child: ElevatedButton(
           onPressed: isValid ? _confirm : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryPurple,
-            disabledBackgroundColor: AppTheme.borderLight,
+            backgroundColor: const Color(0xFF3B82F6),
+            disabledBackgroundColor: const Color(0xFFE2E8F0),
             foregroundColor: Colors.white,
+            disabledForegroundColor: const Color(0xFF94A3B8),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(26)),
+            elevation: 0,
           ),
           child: const Text('Confirm Split',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         ),
       ),
     );
@@ -207,7 +209,8 @@ class _ByAmountTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBalanced = remaining.abs() < 0.01;
+    final activePeopleCount = amounts.values.where((v) => v > 0.01).length;
+    final totalPeopleCount = members.length;
     return Column(
       children: [
         Expanded(
@@ -222,12 +225,36 @@ class _ByAmountTab extends StatelessWidget {
             ),
           ),
         ),
-        _StatusBar(
-          label: isBalanced ? '✓ Balanced' : 'Remaining',
-          value: '₹${remaining.abs().toStringAsFixed(2)}',
-          isGood: isBalanced,
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'People : $activePeopleCount / $totalPeopleCount',
+                style: const TextStyle(
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'Remaining : ₹${remaining.toStringAsFixed(0)} / ₹${expenseAmount.toStringAsFixed(0)}',
+                style: TextStyle(
+                  color: remaining.abs() < 0.01 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -251,8 +278,72 @@ class _BySharesTab extends StatelessWidget {
     required this.controller,
   });
 
+  Widget _buildAmountPreview() {
+    final activeMembers = members.where((m) => (shares[m.userId] ?? 0) > 0).toList();
+    if (activeMembers.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(
+            'Amount Preview',
+            style: TextStyle(
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 54,
+          child: ListView.builder(
+             scrollDirection: Axis.horizontal,
+             padding: const EdgeInsets.symmetric(horizontal: 12),
+             itemCount: activeMembers.length,
+             itemBuilder: (_, i) {
+               final m = activeMembers[i];
+               final memberShare = shares[m.userId] ?? 1;
+               final memberAmount = totalShares > 0
+                   ? (memberShare / totalShares) * expenseAmount
+                   : 0.0;
+               return Container(
+                 margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                 decoration: BoxDecoration(
+                   color: const Color(0xFFEEF2F6),
+                   borderRadius: BorderRadius.circular(20),
+                   border: Border.all(color: const Color(0xFFE2E8F0)),
+                 ),
+                 child: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Text(m.userAvatar.isNotEmpty ? m.userAvatar : '👤'),
+                     const SizedBox(width: 6),
+                     Text(
+                       m.userName,
+                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                     ),
+                     const SizedBox(width: 6),
+                     Text(
+                       '₹${memberAmount.toStringAsFixed(0)}',
+                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6366F1)),
+                     ),
+                   ],
+                 ),
+               );
+             },
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final activePeopleCount = shares.values.where((v) => v > 0).length;
+    final totalPeopleCount = members.length;
     return Column(
       children: [
         Expanded(
@@ -275,12 +366,37 @@ class _BySharesTab extends StatelessWidget {
             },
           ),
         ),
-        _StatusBar(
-          label: 'Total Shares',
-          value: '$totalShares',
-          isGood: totalShares > 0,
+        _buildAmountPreview(),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'People : $activePeopleCount / $totalPeopleCount',
+                style: const TextStyle(
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'Remaining : ₹${totalShares > 0 ? 0 : expenseAmount.toStringAsFixed(0)} / ₹${expenseAmount.toStringAsFixed(0)}',
+                style: TextStyle(
+                  color: totalShares > 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -309,6 +425,17 @@ class _AmountRowState extends State<_AmountRow> {
   }
 
   @override
+  void didUpdateWidget(covariant _AmountRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value) {
+      final newText = widget.value > 0 ? widget.value.toStringAsFixed(2) : '';
+      if (_ctrl.text != newText && !(widget.value == 0.0 && _ctrl.text.isEmpty)) {
+        _ctrl.text = newText;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
@@ -316,16 +443,43 @@ class _AmountRowState extends State<_AmountRow> {
 
   @override
   Widget build(BuildContext context) {
+    final isChecked = widget.value > 0;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundLight,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderLight, width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: () {
+              if (isChecked) {
+                widget.onChanged(0.0);
+                _ctrl.text = '';
+              } else {
+                widget.onChanged(0.0);
+              }
+            },
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isChecked ? const Color(0xFF6366F1) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isChecked ? const Color(0xFF6366F1) : const Color(0xFFCBD5E1),
+                  width: 2,
+                ),
+              ),
+              child: isChecked
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 12),
           Text(widget.member.userAvatar.isNotEmpty ? widget.member.userAvatar : '👤',
               style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 10),
@@ -349,7 +503,25 @@ class _AmountRowState extends State<_AmountRow> {
                   color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 15),
-              decoration: _amountDecoration(),
+              decoration: InputDecoration(
+                prefixText: '₹',
+                prefixStyle:
+                    const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
+                hintText: '0.00',
+                hintStyle: const TextStyle(color: AppTheme.textMuted),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF6366F1), width: 1.5)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              ),
               onChanged: (v) => widget.onChanged(double.tryParse(v) ?? 0.0),
             ),
           ),
@@ -359,7 +531,7 @@ class _AmountRowState extends State<_AmountRow> {
   }
 }
 
-class _ShareRow extends StatefulWidget {
+class _ShareRow extends StatelessWidget {
   final GroupMemberModel member;
   final int share;
   final double amount;
@@ -373,35 +545,56 @@ class _ShareRow extends StatefulWidget {
   });
 
   @override
-  State<_ShareRow> createState() => _ShareRowState();
-}
-
-class _ShareRowState extends State<_ShareRow> {
-  @override
   Widget build(BuildContext context) {
+    final isChecked = share > 0;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundLight,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderLight, width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Row(
         children: [
-          Text(widget.member.userAvatar.isNotEmpty ? widget.member.userAvatar : '👤',
+          GestureDetector(
+            onTap: () {
+              if (isChecked) {
+                onChanged(0);
+              } else {
+                onChanged(1);
+              }
+            },
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isChecked ? const Color(0xFF6366F1) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isChecked ? const Color(0xFF6366F1) : const Color(0xFFCBD5E1),
+                  width: 2,
+                ),
+              ),
+              child: isChecked
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(member.userAvatar.isNotEmpty ? member.userAvatar : '👤',
               style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.member.userName,
+                Text(member.userName,
                     style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontWeight: FontWeight.w600,
                         fontSize: 14)),
-                Text('≈ ₹${widget.amount.toStringAsFixed(2)}',
+                Text('≈ ₹${amount.toStringAsFixed(2)}',
                     style: const TextStyle(
                         color: AppTheme.textMuted, fontSize: 12)),
               ],
@@ -411,15 +604,15 @@ class _ShareRowState extends State<_ShareRow> {
             children: [
               _StepButton(
                 icon: Icons.remove_rounded,
-                onTap: widget.share > 1
-                    ? () => widget.onChanged(widget.share - 1)
+                onTap: isChecked && share > 1
+                    ? () => onChanged(share - 1)
                     : null,
               ),
               Container(
                 width: 36,
                 alignment: Alignment.center,
                 child: Text(
-                  '${widget.share}',
+                  '$share',
                   style: const TextStyle(
                       color: AppTheme.textPrimary,
                       fontWeight: FontWeight.w800,
@@ -428,7 +621,9 @@ class _ShareRowState extends State<_ShareRow> {
               ),
               _StepButton(
                 icon: Icons.add_rounded,
-                onTap: () => widget.onChanged(widget.share + 1),
+                onTap: isChecked
+                    ? () => onChanged(share + 1)
+                    : null,
               ),
             ],
           ),
@@ -453,73 +648,14 @@ class _StepButton extends StatelessWidget {
         height: 30,
         decoration: BoxDecoration(
           color: onTap != null
-              ? AppTheme.primaryPurple.withOpacity(0.1)
-              : AppTheme.borderLight,
+              ? const Color(0xFF6366F1).withOpacity(0.1)
+              : const Color(0xFFF1F5F9),
           shape: BoxShape.circle,
         ),
         child: Icon(icon,
             size: 16,
-            color: onTap != null ? AppTheme.primaryPurple : AppTheme.textMuted),
+            color: onTap != null ? const Color(0xFF6366F1) : const Color(0xFF94A3B8)),
       ),
     );
   }
 }
-
-class _StatusBar extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isGood;
-
-  const _StatusBar({required this.label, required this.value, required this.isGood});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isGood ? const Color(0xFFF0FDF4) : const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isGood ? AppTheme.successGreen : const Color(0xFFFB923C),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  color: isGood ? AppTheme.successGreen : const Color(0xFFF97316),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13)),
-          Text(value,
-              style: TextStyle(
-                  color: isGood ? AppTheme.successGreen : const Color(0xFFF97316),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15)),
-        ],
-      ),
-    );
-  }
-}
-
-InputDecoration _amountDecoration() => InputDecoration(
-      prefixText: '₹',
-      prefixStyle:
-          const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-      hintText: '0.00',
-      hintStyle: const TextStyle(color: AppTheme.textMuted),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppTheme.borderLight)),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppTheme.primaryPurple, width: 1.5)),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppTheme.borderLight)),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    );

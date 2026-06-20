@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/expense_category.dart';
 import '../../models/enhanced_expense_model.dart';
@@ -267,7 +268,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
         _allMembers.where((m) => selectedMemberIds.contains(m.userId)).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: CustomScrollView(
         controller: _scrollCtrl,
@@ -283,6 +284,9 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                   onRemove: (id) =>
                       ref.read(memberSelectionProvider.notifier).removeMember(id),
                 ),
+
+                // ── Bill tabs row ──────────────────────────────────────
+                const _BillTabsRow(),
 
                 // ── Partner logos ───────────────────────────────────────
                 _PartnerLogosRow(),
@@ -313,28 +317,18 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                 ],
 
                 // ── Equal split preview ─────────────────────────────────
-                if (form.splitType == 'equal' && selectedMembers.isNotEmpty) ...[
+                if (form.splitType == 'equal') ...[
                   _EqualSplitPreview(
-                    members: selectedMembers,
-                    amount: double.tryParse(_amtCtrl.text) ?? 0.0,
                     allMembers: _allMembers,
                     selectedIds: selectedMemberIds,
+                    amount: double.tryParse(_amtCtrl.text) ?? 0.0,
                   ),
                 ],
 
-                // ── Date picker ─────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: DatePickerCard(),
-                ),
-
-                // ── Image attachment ────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: ImageAttachmentSection(
-                    images: _localImages,
-                    onChanged: (imgs) => setState(() => _localImages = imgs),
-                  ),
+                // ── Date, Image, Scan Bill Row ─────────────────────────
+                _BottomActionsRow(
+                  images: _localImages,
+                  onImagesChanged: (imgs) => setState(() => _localImages = imgs),
                 ),
               ],
             ),
@@ -356,45 +350,39 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
       elevation: 0,
       surfaceTintColor: Colors.white,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
+        icon: const Icon(Icons.chevron_left_rounded, color: AppTheme.textPrimary, size: 28),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Add Expense',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            widget.group.groupName,
-            style: const TextStyle(
-              color: AppTheme.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      title: const Text(
+        'Add Expense',
+        style: TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          margin: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: AppTheme.lightPurpleContainer,
+            color: const Color(0xFFFEF3C7),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
-            '${widget.group.groupIcon} ${widget.group.groupName}',
-            style: const TextStyle(
-              color: AppTheme.primaryPurple,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.room_preferences_rounded, color: Color(0xFFD97706), size: 13),
+              const SizedBox(width: 4),
+              Text(
+                widget.group.groupName,
+                style: const TextStyle(
+                  color: Color(0xFFD97706),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -433,24 +421,20 @@ class _MemberAvatarRow extends StatelessWidget {
                   Container(
                     width: 52,
                     height: 52,
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightPurpleContainer,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0F172A),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: AppTheme.primaryPurple.withOpacity(0.3),
-                          width: 1.5,
-                          style: BorderStyle.solid),
                     ),
-                    child: const Icon(Icons.person_add_rounded,
-                        color: AppTheme.primaryPurple, size: 22),
+                    child: const Icon(Icons.add_rounded,
+                        color: Colors.white, size: 22),
                   ),
-                  const SizedBox(height: 4),
-                  const Text('Add\nFriends',
+                  const SizedBox(height: 6),
+                  const Text('Add Friends',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: AppTheme.primaryPurple,
+                          color: Color(0xFF0F172A),
                           fontSize: 10,
-                          fontWeight: FontWeight.w700)),
+                          fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
@@ -479,15 +463,16 @@ class _AvatarChip extends StatelessWidget {
     return Column(
       children: [
         Stack(
+          clipBehavior: Clip.none,
           children: [
             Container(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: AppTheme.primaryPurple.withOpacity(0.1),
+                color: const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: AppTheme.primaryPurple, width: 2),
+                    color: const Color(0xFFCBD5E1), width: 1.5),
               ),
               child: Center(
                 child: Text(
@@ -497,29 +482,29 @@ class _AvatarChip extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: 0,
-              right: 0,
+              top: -2,
+              right: -2,
               child: GestureDetector(
                 onTap: onRemove,
                 child: Container(
-                  width: 18,
-                  height: 18,
+                  width: 16,
+                  height: 16,
                   decoration: const BoxDecoration(
-                      color: AppTheme.errorRed, shape: BoxShape.circle),
+                      color: Colors.black, shape: BoxShape.circle),
                   child: const Icon(Icons.close_rounded,
-                      color: Colors.white, size: 11),
+                      color: Colors.white, size: 10),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           member.userName.split(' ').first,
           style: const TextStyle(
-              color: AppTheme.textSecondary,
+              color: AppTheme.textPrimary,
               fontSize: 10,
-              fontWeight: FontWeight.w600),
+              fontWeight: FontWeight.w700),
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -532,14 +517,14 @@ class _AvatarChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _PartnerLogosRow extends StatelessWidget {
   final _logos = const [
-    ('📱', 'PhonePe'),
-    ('💳', 'GPay'),
-    ('🔵', 'Paytm'),
-    ('🚗', 'Uber'),
-    ('🍔', 'Swiggy'),
-    ('🍕', 'Zomato'),
-    ('⚡', 'Zepto'),
-    ('🛒', 'Blinkit'),
+    ('P', 'PhonePe', Color(0xFF5F259F), Colors.white),
+    ('G', 'GPay', Color(0xFFFFFFFF), Color(0xFF4285F4)),
+    ('Pay', 'Paytm', Color(0xFF00B9F5), Colors.white),
+    ('U', 'Uber', Color(0xFF000000), Colors.white),
+    ('S', 'Swiggy', Color(0xFFFC8019), Colors.white),
+    ('Z', 'Zomato', Color(0xFFE23744), Colors.white),
+    ('Zp', 'Zepto', Color(0xFF4E1687), Colors.white),
+    ('B', 'Blinkit', Color(0xFFFFD200), Colors.black),
   ];
 
   @override
@@ -561,14 +546,21 @@ class _PartnerLogosRow extends StatelessWidget {
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: AppTheme.backgroundLight,
+                                color: l.$3,
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: AppTheme.borderLight, width: 1),
+                                border: l.$2 == 'GPay'
+                                    ? Border.all(color: const Color(0xFFE2E8F0), width: 1.5)
+                                    : null,
                               ),
                               child: Center(
-                                child: Text(l.$1,
-                                    style: const TextStyle(fontSize: 18)),
+                                child: Text(
+                                  l.$1,
+                                  style: TextStyle(
+                                    color: l.$4,
+                                    fontSize: l.$1.length > 1 ? 11 : 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -576,32 +568,45 @@ class _PartnerLogosRow extends StatelessWidget {
                                 style: const TextStyle(
                                     color: AppTheme.textMuted,
                                     fontSize: 9,
-                                    fontWeight: FontWeight.w600)),
+                                    fontWeight: FontWeight.w700)),
                           ],
                         ),
                       ))
                   .toList(),
             ),
           ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16),
                   child: Container(
-                      height: 1, color: AppTheme.borderLight)),
+                    height: 1,
+                    color: const Color(0xFFE2E8F0),
+                  ),
+                ),
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text('OR',
                     style: TextStyle(
                         color: AppTheme.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800)),
               ),
               Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16),
                   child: Container(
-                      height: 1, color: AppTheme.borderLight)),
+                    height: 1,
+                    color: const Color(0xFFE2E8F0),
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -611,6 +616,54 @@ class _PartnerLogosRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Form Card
 // ─────────────────────────────────────────────────────────────────────────────
+class _GridFormCard extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _GridFormCard({
+    required this.label,
+    required this.child,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final card = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          child,
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: card,
+      );
+    }
+    return card;
+  }
+}
+
 class _FormCard extends StatelessWidget {
   final TextEditingController descCtrl;
   final TextEditingController amtCtrl;
@@ -633,174 +686,137 @@ class _FormCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = ExpenseCategory.fromString(form.category);
+    final categoryLabel = category == ExpenseCategory.misc &&
+            !ExpenseCategory.values.any((c) => c.name == form.category)
+        ? form.category
+        : category.label;
+
     final payerLabel = form.payerType == 'multi'
         ? 'Multiple Payers'
         : form.singlePayerName.isNotEmpty
             ? form.singlePayerName
             : 'Select Payer';
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 3)),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
         children: [
-          // Category row
-          _FormRow(
-            icon: category.icon,
-            iconColor: const Color(0xFF8B5CF6),
-            onTap: onCategoryTap,
-            child: Text(
-              category == ExpenseCategory.misc &&
-                      !ExpenseCategory.values
-                          .any((c) => c.name == form.category)
-                  ? form.category
-                  : category.label,
-              style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14),
-            ),
-          ),
-          _divider(),
-
-          // Description field
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: descCtrl,
-              style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15),
-              decoration: const InputDecoration(
-                hintText: 'Add a description',
-                hintStyle:
-                    TextStyle(color: AppTheme.textMuted, fontSize: 15),
-                border: InputBorder.none,
-                prefixIcon: Icon(Icons.edit_rounded,
-                    color: AppTheme.textMuted, size: 18),
-              ),
-            ),
-          ),
-          _divider(),
-
-          // Amount field
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: amtCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                    RegExp(r'^\d+\.?\d{0,2}'))
-              ],
-              style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 22),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 22),
-                border: InputBorder.none,
-                prefixIcon: Padding(
-                  padding: EdgeInsets.only(top: 12, left: 4),
-                  child: Text('₹',
-                      style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800)),
+          Row(
+            children: [
+              Expanded(
+                child: _GridFormCard(
+                  label: 'Description',
+                  child: TextField(
+                    controller: descCtrl,
+                    style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Add description',
+                      hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
                 ),
               ),
-              onChanged: (_) => onAmountChanged(),
-            ),
-          ),
-          _divider(),
-
-          // Paid by row
-          _FormRow(
-            icon: Icons.account_balance_wallet_rounded,
-            iconColor: const Color(0xFF3B82F6),
-            onTap: onPaidByTap,
-            child: Text(
-              payerLabel,
-              style: TextStyle(
-                  color: form.singlePayerId.isEmpty &&
-                          form.payerType == 'single'
-                      ? AppTheme.textMuted
-                      : AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14),
-            ),
-          ),
-          _divider(),
-
-          // Notes field
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: notesCtrl,
-              style: const TextStyle(
-                  color: AppTheme.textPrimary, fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Notes (optional)',
-                hintStyle:
-                    TextStyle(color: AppTheme.textMuted, fontSize: 14),
-                border: InputBorder.none,
-                prefixIcon: Icon(Icons.notes_rounded,
-                    color: AppTheme.textMuted, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _GridFormCard(
+                  label: 'Category',
+                  onTap: onCategoryTap,
+                  child: SizedBox(
+                    height: 20,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            categoryLabel,
+                            style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.textMuted, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _GridFormCard(
+                  label: 'Price',
+                  child: TextField(
+                    controller: amtCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                    ],
+                    style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Enter price',
+                      hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      prefixText: '₹ ',
+                      prefixStyle: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800),
+                    ),
+                    onChanged: (_) => onAmountChanged(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _GridFormCard(
+                  label: 'Paid By',
+                  onTap: onPaidByTap,
+                  child: SizedBox(
+                    height: 20,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            payerLabel,
+                            style: TextStyle(
+                                color: form.singlePayerId.isEmpty &&
+                                        form.payerType == 'single'
+                                    ? AppTheme.textMuted
+                                    : AppTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.textMuted, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _divider() => const Divider(
-      height: 1, thickness: 1, color: AppTheme.borderLight,
-      indent: 16, endIndent: 16);
-}
-
-class _FormRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-  final Widget child;
-
-  const _FormRow({
-    required this.icon,
-    required this.iconColor,
-    required this.onTap,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: child),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppTheme.textMuted, size: 20),
-          ],
-        ),
       ),
     );
   }
@@ -834,27 +850,41 @@ class _SplitOptionsRow extends StatelessWidget {
             style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 12,
-                fontWeight: FontWeight.w700),
+                fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              _SplitChip(
-                  label: '= Equal',
-                  isSelected: currentSplit == 'equal',
-                  onTap: onEqualTap),
-              const SizedBox(width: 8),
-              _SplitChip(
-                  label: '≠ Unequal',
-                  isSelected: currentSplit == 'unequalAmount' ||
-                      currentSplit == 'unequalShares',
-                  onTap: onUnequalTap),
-              const SizedBox(width: 8),
-              _SplitChip(
-                  label: '📦 Items',
-                  isSelected: currentSplit == 'itemWise',
-                  onTap: onItemWiseTap),
-            ],
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SplitSegment(
+                    label: 'Equally',
+                    isSelected: currentSplit == 'equal',
+                    onTap: onEqualTap,
+                  ),
+                ),
+                Expanded(
+                  child: _SplitSegment(
+                    label: 'Unequally',
+                    isSelected: currentSplit == 'unequalAmount' ||
+                        currentSplit == 'unequalShares',
+                    onTap: onUnequalTap,
+                  ),
+                ),
+                Expanded(
+                  child: _SplitSegment(
+                    label: 'Item wise',
+                    isSelected: currentSplit == 'itemWise',
+                    onTap: onItemWiseTap,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -862,39 +892,36 @@ class _SplitOptionsRow extends StatelessWidget {
   }
 }
 
-class _SplitChip extends StatelessWidget {
+class _SplitSegment extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SplitChip(
-      {required this.label, required this.isSelected, required this.onTap});
+  const _SplitSegment({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryPurple
-              : Colors.white,
+          color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? AppTheme.primaryPurple
-                : AppTheme.borderLight,
-            width: 1.5,
-          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-              color: isSelected ? Colors.white : AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-              fontSize: 12),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
         ),
       ),
     );
@@ -904,68 +931,90 @@ class _SplitChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Equal Split Preview
 // ─────────────────────────────────────────────────────────────────────────────
-class _EqualSplitPreview extends StatelessWidget {
-  final List<GroupMemberModel> members;
-  final double amount;
+class _EqualSplitPreview extends ConsumerWidget {
   final List<GroupMemberModel> allMembers;
   final List<String> selectedIds;
+  final double amount;
 
   const _EqualSplitPreview({
-    required this.members,
-    required this.amount,
+    super.key,
     required this.allMembers,
     required this.selectedIds,
+    required this.amount,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (members.isEmpty || amount <= 0) return const SizedBox.shrink();
-    final share = amount / members.length;
-    final fmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (allMembers.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderLight, width: 1.5),
-      ),
+    final activeCount = selectedIds.length;
+    final share = activeCount > 0 ? amount / activeCount : 0.0;
+    final fmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+
+    final authState = ref.watch(authStateNotifierProvider);
+    final myUid = authState is AuthAuthenticated ? authState.user.uid : '';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.people_rounded,
-                  color: AppTheme.primaryPurple, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                '${members.length} members · ${fmt.format(share)} each',
-                style: const TextStyle(
-                    color: AppTheme.primaryPurple,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13),
-              ),
-            ],
+          const Text(
+            'Split among ( Tap to unselect )',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: members.map((m) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightPurpleContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${m.userAvatar} ${m.userName.split(' ').first}  ${fmt.format(share)}',
-                  style: const TextStyle(
-                      color: AppTheme.primaryPurple,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600),
+            spacing: 10,
+            runSpacing: 10,
+            children: allMembers.map((m) {
+              final selected = selectedIds.contains(m.userId);
+              return GestureDetector(
+                onTap: () {
+                  final selectionNotifier = ref.read(memberSelectionProvider.notifier);
+                  selectionNotifier.toggle(m.userId);
+                  final updatedSelection = ref.read(memberSelectionProvider);
+                  ref.read(addExpenseProvider.notifier).setEqualSplit(updatedSelection);
+                },
+                child: Container(
+                  width: (MediaQuery.of(context).size.width - 52) / 3,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: selected ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        m.userId == myUid ? 'You' : m.userName.split(' ').first,
+                        style: TextStyle(
+                          color: selected ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        selected ? fmt.format(share) : '₹ 0',
+                        style: TextStyle(
+                          color: selected ? const Color(0xFF1E293B) : const Color(0xFFCBD5E1),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }).toList(),
@@ -1007,7 +1056,7 @@ class _SaveBar extends StatelessWidget {
         child: ElevatedButton(
           onPressed: canSave ? onSave : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryPurple,
+            backgroundColor: const Color(0xFF6366F1),
             disabledBackgroundColor: AppTheme.borderLight,
             foregroundColor: Colors.white,
             elevation: 0,
@@ -1023,6 +1072,276 @@ class _SaveBar extends StatelessWidget {
               : const Text('Save Expense',
                   style: TextStyle(
                       fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bill Tabs Row & Bottom Actions Widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BillTabsRow extends ConsumerWidget {
+  const _BillTabsRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tabsState = ref.watch(billTabsProvider);
+    final notifier = ref.read(billTabsProvider.notifier);
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ...tabsState.tabs.asMap().entries.map((e) {
+              final idx = e.key;
+              final active = idx == tabsState.activeIndex;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    final currentTabState = ref.read(addExpenseProvider);
+                    notifier.updateActiveTab(currentTabState);
+                    notifier.switchTab(idx);
+                    ref.read(addExpenseProvider.notifier).restore(tabsState.tabs[idx]);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: active ? const Color(0xFFF59E0B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: active ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Bill ${idx + 1}',
+                          style: TextStyle(
+                            color: active ? Colors.white : const Color(0xFF475569),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (tabsState.tabs.length > 1) ...[
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () {
+                              notifier.removeBill(idx);
+                              final newTabsState = ref.read(billTabsProvider);
+                              ref.read(addExpenseProvider.notifier).restore(newTabsState.activeTab);
+                            },
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: active ? Colors.white : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            GestureDetector(
+              onTap: () {
+                final currentTabState = ref.read(addExpenseProvider);
+                notifier.updateActiveTab(currentTabState);
+                notifier.addBill();
+                final newTabsState = ref.read(billTabsProvider);
+                ref.read(addExpenseProvider.notifier).restore(newTabsState.activeTab);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.add_rounded, size: 14, color: Color(0xFF475569)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add bill',
+                      style: TextStyle(
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomActionsRow extends ConsumerWidget {
+  final List<File> images;
+  final ValueChanged<List<File>> onImagesChanged;
+
+  const _BottomActionsRow({
+    required this.images,
+    required this.onImagesChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final form = ref.watch(addExpenseProvider);
+    final date = form.date;
+    final formattedDate = DateFormat('d MMM yyyy').format(date);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.camera_alt_outlined,
+              label: images.isEmpty ? 'Add image' : '${images.length} image(s)',
+              onTap: () => _pickImage(context),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.qr_code_scanner_rounded,
+              label: 'Scan bill',
+              onTap: () => _scanBill(context),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.calendar_today_rounded,
+              label: formattedDate,
+              onTap: () => _pickDate(context, ref, date),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImage(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Add Image', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Choose a source for the receipt image:'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ImageSource.camera),
+              child: const Text('Camera'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ImageSource.gallery),
+              child: const Text('Gallery'),
+            ),
+          ],
+        ),
+      );
+
+      if (source != null) {
+        final picked = await picker.pickImage(imageQuality: 70, source: source);
+        if (picked != null) {
+          onImagesChanged([...images, File(picked.path)]);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
+  void _scanBill(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Bill scanning features are currently integrated with QR code flow.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _pickDate(BuildContext context, WidgetRef ref, DateTime current) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF6366F1),
+            onPrimary: Colors.white,
+            surface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      ref.read(addExpenseProvider.notifier).updateDate(picked);
+    }
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFF6366F1), size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );

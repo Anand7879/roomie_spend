@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/activity_model.dart';
 import '../../providers/activity_provider.dart';
+import '../groups/group_details/group_details_screen.dart';
 
 /// Screen displaying all activities for the logged-in user with firestore updates.
 class ActivityHistoryScreen extends ConsumerWidget {
@@ -150,7 +151,19 @@ class ActivityHistoryScreen extends ConsumerWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            if (activity.groupId.isNotEmpty) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GroupDetailsScreen(
+                    groupId: activity.groupId,
+                    groupName: activity.groupName,
+                    groupIcon: '',
+                  ),
+                ),
+              );
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -352,6 +365,12 @@ class ActivityHistoryScreen extends ConsumerWidget {
         return Icons.receipt_long_rounded;
       case ActivityType.receiptScanned:
         return Icons.document_scanner_outlined;
+      case ActivityType.joinRequestCreated:
+        return Icons.person_add_alt_1_rounded;
+      case ActivityType.joinRequestApproved:
+        return Icons.how_to_reg_rounded;
+      case ActivityType.joinRequestDenied:
+        return Icons.person_add_disabled_rounded;
     }
   }
 
@@ -375,6 +394,12 @@ class ActivityHistoryScreen extends ConsumerWidget {
         return Colors.blue;
       case ActivityType.receiptScanned:
         return AppTheme.secondaryViolet;
+      case ActivityType.joinRequestCreated:
+        return Colors.orange;
+      case ActivityType.joinRequestApproved:
+        return AppTheme.successGreen;
+      case ActivityType.joinRequestDenied:
+        return AppTheme.errorRed;
     }
   }
 

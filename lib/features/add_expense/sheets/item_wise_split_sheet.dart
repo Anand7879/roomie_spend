@@ -122,13 +122,10 @@ class _ItemWiseSplitSheetState extends ConsumerState<ItemWiseSplitSheet> {
                             ? () => _removeItem(e.key)
                             : null,
                       )),
-                  const SizedBox(height: 8),
-                  _AddItemButton(onTap: _addItem),
                   const SizedBox(height: 16),
                 ],
               ),
             ),
-            _buildStatusBar(),
             _buildButtons(),
           ],
         ),
@@ -142,103 +139,115 @@ class _ItemWiseSplitSheetState extends ConsumerState<ItemWiseSplitSheet> {
           child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-                color: AppTheme.borderLight,
+                color: const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(2)),
           ),
         ),
       );
 
   Widget _buildHeader() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Item-Wise Split',
-                style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-            const Spacer(),
-            GestureDetector(
-              onTap: _splitAllEqually,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightPurpleContainer,
-                  borderRadius: BorderRadius.circular(10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Item-Wise Split',
+                  style: TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                child: const Text('Split Equally',
+                TextButton.icon(
+                  onPressed: _splitAllEqually,
+                  icon: const Icon(Icons.splitscreen_rounded, size: 16, color: Color(0xFF6366F1)),
+                  label: const Text(
+                    'Split All Equally',
                     style: TextStyle(
-                        color: AppTheme.primaryPurple,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
+                      color: Color(0xFF6366F1),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFEEF2F6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Remaining: ₹${_remaining.toStringAsFixed(0)} / ₹${widget.expenseAmount.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: _isBalanced ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
-      );
-
-  Widget _buildStatusBar() => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: _isBalanced
-              ? const Color(0xFFF0FDF4)
-              : const Color(0xFFFFF7ED),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: _isBalanced
-                ? AppTheme.successGreen
-                : const Color(0xFFFB923C),
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _isBalanced
-                  ? '✓ All items accounted for'
-                  : 'Remaining: ₹${_remaining.toStringAsFixed(2)} / ₹${widget.expenseAmount.toStringAsFixed(2)}',
-              style: TextStyle(
-                  color: _isBalanced
-                      ? AppTheme.successGreen
-                      : const Color(0xFFF97316),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13),
-            ),
-            Text(
-              '₹${_itemsTotal.toStringAsFixed(2)}',
-              style: TextStyle(
-                  color: _isBalanced
-                      ? AppTheme.successGreen
-                      : const Color(0xFFF97316),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15),
-            ),
+            const Divider(height: 20, thickness: 1, color: Color(0xFFF1F5F9)),
           ],
         ),
       );
 
   Widget _buildButtons() => Padding(
         padding: EdgeInsets.fromLTRB(
-            16, 4, 16, MediaQuery.of(context).padding.bottom + 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _isBalanced ? _confirm : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryPurple,
-              disabledBackgroundColor: AppTheme.borderLight,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+            16, 12, 16, MediaQuery.of(context).padding.bottom + 16),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: _addItem,
+                  icon: const Icon(Icons.add_rounded, color: Color(0xFF6366F1), size: 20),
+                  label: const Text(
+                    'Add Item',
+                    style: TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            child: const Text('Done',
-                style:
-                    TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 6,
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isBalanced ? _confirm : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    disabledBackgroundColor: const Color(0xFFE2E8F0),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: const Color(0xFF94A3B8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Done',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                ),
+              ),
+            ),
+          ],
         ),
       );
 }
@@ -332,6 +341,24 @@ class _ItemCardState extends State<_ItemCard> {
   }
 
   @override
+  void didUpdateWidget(covariant _ItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.entry.description != oldWidget.entry.description) {
+      if (_descCtrl.text != widget.entry.description) {
+        _descCtrl.text = widget.entry.description;
+      }
+    }
+    if (widget.entry.pricePerUnit != oldWidget.entry.pricePerUnit) {
+      final newText = widget.entry.pricePerUnit > 0
+          ? widget.entry.pricePerUnit.toStringAsFixed(2)
+          : '';
+      if (_priceCtrl.text != newText && !(widget.entry.pricePerUnit == 0.0 && _priceCtrl.text.isEmpty)) {
+        _priceCtrl.text = newText;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _descCtrl.dispose();
     _priceCtrl.dispose();
@@ -346,10 +373,10 @@ class _ItemCardState extends State<_ItemCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderLight, width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withOpacity(0.02),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -364,8 +391,8 @@ class _ItemCardState extends State<_ItemCard> {
               children: [
                 Container(
                   width: 24, height: 24,
-                  decoration: BoxDecoration(
-                      color: AppTheme.primaryPurple,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF6366F1),
                       shape: BoxShape.circle),
                   child: Center(
                     child: Text('${widget.index + 1}',
@@ -403,7 +430,7 @@ class _ItemCardState extends State<_ItemCard> {
               ],
             ),
           ),
-          const Divider(color: AppTheme.borderLight, height: 16),
+          const Divider(color: Color(0xFFE2E8F0), height: 16),
           // Quantity + Price row
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -464,15 +491,15 @@ class _ItemCardState extends State<_ItemCard> {
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                              color: AppTheme.borderLight)),
+                              color: Color(0xFFE2E8F0))),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                              color: AppTheme.primaryPurple, width: 1.5)),
+                              color: Color(0xFF6366F1), width: 1.5)),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                              color: AppTheme.borderLight)),
+                              color: Color(0xFFE2E8F0))),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 10),
                     ),
@@ -493,15 +520,15 @@ class _ItemCardState extends State<_ItemCard> {
                 Text(
                   'Total: ₹${entry.total.toStringAsFixed(2)}',
                   style: const TextStyle(
-                      color: AppTheme.primaryPurple,
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF6366F1),
+                      fontWeight: FontWeight.w800,
                       fontSize: 13),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(color: AppTheme.borderLight, height: 1),
+          const Divider(color: Color(0xFFE2E8F0), height: 1),
           // Member chips
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
@@ -532,16 +559,16 @@ class _ItemCardState extends State<_ItemCard> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: selected
-                              ? AppTheme.primaryPurple
-                              : AppTheme.backgroundLight,
+                              ? const Color(0xFF6366F1)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: selected
-                                ? AppTheme.primaryPurple
-                                : AppTheme.borderLight,
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFFE2E8F0),
                             width: 1.5,
                           ),
                         ),
@@ -550,7 +577,7 @@ class _ItemCardState extends State<_ItemCard> {
                           style: TextStyle(
                               color: selected
                                   ? Colors.white
-                                  : AppTheme.textSecondary,
+                                  : const Color(0xFF475569),
                               fontSize: 12,
                               fontWeight: FontWeight.w600),
                         ),
@@ -583,48 +610,17 @@ class _StepBtn extends StatelessWidget {
         width: 28, height: 28,
         decoration: BoxDecoration(
           color: enabled
-              ? AppTheme.primaryPurple.withOpacity(0.1)
-              : AppTheme.borderLight,
+              ? const Color(0xFF6366F1).withOpacity(0.1)
+              : const Color(0xFFF1F5F9),
           shape: BoxShape.circle,
         ),
         child: Icon(icon,
             size: 15,
             color:
-                enabled ? AppTheme.primaryPurple : AppTheme.textMuted),
+                enabled ? const Color(0xFF6366F1) : const Color(0xFF94A3B8)),
       ),
     );
   }
 }
 
-class _AddItemButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AddItemButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppTheme.lightPurpleContainer,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: AppTheme.primaryPurple.withOpacity(0.3), width: 1.5),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_rounded, color: AppTheme.primaryPurple, size: 20),
-            SizedBox(width: 6),
-            Text('Add More Item',
-                style: TextStyle(
-                    color: AppTheme.primaryPurple,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14)),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Removed _AddItemButton since it is now built inline in the bottom buttons row.

@@ -37,6 +37,11 @@ class _PaidBySheetState extends ConsumerState<PaidBySheet>
       vsync: this,
       initialIndex: formState.payerType == 'multi' ? 1 : 0,
     );
+    _tabCtrl.addListener(() {
+      if (!_tabCtrl.indexIsChanging) {
+        setState(() {});
+      }
+    });
     _selectedPayerId = formState.singlePayerId;
     _selectedPayerName = formState.singlePayerName;
     _payerAmounts = Map.from(formState.multiPayerAmounts);
@@ -140,15 +145,15 @@ class _PaidBySheetState extends ConsumerState<PaidBySheet>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.backgroundLight,
+            color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(12),
           ),
           child: TabBar(
             controller: _tabCtrl,
             labelColor: Colors.white,
-            unselectedLabelColor: AppTheme.textSecondary,
+            unselectedLabelColor: const Color(0xFF64748B),
             indicator: BoxDecoration(
-              color: AppTheme.primaryPurple,
+              color: const Color(0xFFEF4444),
               borderRadius: BorderRadius.circular(10),
             ),
             indicatorSize: TabBarIndicatorSize.tab,
@@ -173,15 +178,17 @@ class _PaidBySheetState extends ConsumerState<PaidBySheet>
         child: ElevatedButton(
           onPressed: isValid ? _confirm : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryPurple,
-            disabledBackgroundColor: AppTheme.borderLight,
+            backgroundColor: const Color(0xFF3B82F6),
+            disabledBackgroundColor: const Color(0xFFE2E8F0),
             foregroundColor: Colors.white,
+            disabledForegroundColor: const Color(0xFF94A3B8),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(26)),
+            elevation: 0,
           ),
           child: Text(
             isMulti ? 'Confirm Payers' : 'Confirm',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
           ),
         ),
       ),
@@ -230,13 +237,13 @@ class _SinglePayerTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: selected
-                  ? AppTheme.lightPurpleContainer
-                  : AppTheme.backgroundLight,
+                  ? const Color(0xFFFFFBEB)
+                  : const Color(0xFFFAF6F0),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: selected
-                    ? AppTheme.primaryPurple
-                    : AppTheme.borderLight,
+                    ? const Color(0xFFFCD34D)
+                    : const Color(0xFFE2E8F0),
                 width: 1.5,
               ),
             ),
@@ -248,34 +255,31 @@ class _SinglePayerTab extends StatelessWidget {
                 Expanded(
                   child: Text(
                     m.userName,
-                    style: TextStyle(
-                      color: selected
-                          ? AppTheme.primaryPurple
-                          : AppTheme.textPrimary,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
                   ),
                 ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
+                Container(
                   width: 22,
                   height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: selected
-                        ? AppTheme.primaryPurple
-                        : Colors.transparent,
                     border: Border.all(
-                      color: selected
-                          ? AppTheme.primaryPurple
-                          : AppTheme.borderLight,
+                      color: selected ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
                       width: 2,
                     ),
                   ),
+                  padding: const EdgeInsets.all(4),
                   child: selected
-                      ? const Icon(Icons.check_rounded,
-                          color: Colors.white, size: 13)
+                      ? const DecoratedBox(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF3B82F6),
+                          ),
+                        )
                       : null,
                 ),
               ],
@@ -307,7 +311,8 @@ class _MultiPayerTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBalanced = remaining.abs() < 0.01;
+    final activePeopleCount = amounts.values.where((v) => v > 0.01).length;
+    final totalPeopleCount = members.length;
     return Column(
       children: [
         Expanded(
@@ -327,40 +332,29 @@ class _MultiPayerTab extends StatelessWidget {
         ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isBalanced
-                ? const Color(0xFFF0FDF4)
-                : const Color(0xFFFFF7ED),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isBalanced
-                  ? AppTheme.successGreen
-                  : const Color(0xFFFB923C),
-              width: 1.5,
-            ),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isBalanced ? '✓ Amounts balanced' : 'Remaining',
-                style: TextStyle(
-                  color: isBalanced
-                      ? AppTheme.successGreen
-                      : const Color(0xFFF97316),
+                'People : $activePeopleCount / $totalPeopleCount',
+                style: const TextStyle(
+                  color: Color(0xFF475569),
                   fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  fontSize: 14,
                 ),
               ),
               Text(
-                '₹${remaining.abs().toStringAsFixed(2)}',
+                'Remaining : ₹${remaining.toStringAsFixed(0)} / ₹${expenseAmount.toStringAsFixed(0)}',
                 style: TextStyle(
-                  color: isBalanced
-                      ? AppTheme.successGreen
-                      : const Color(0xFFF97316),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
+                  color: remaining.abs() < 0.01 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -397,6 +391,17 @@ class _AmountInputTileState extends State<_AmountInputTile> {
   }
 
   @override
+  void didUpdateWidget(covariant _AmountInputTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value) {
+      final newText = widget.value > 0 ? widget.value.toStringAsFixed(2) : '';
+      if (_ctrl.text != newText && !(widget.value == 0.0 && _ctrl.text.isEmpty)) {
+        _ctrl.text = newText;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
@@ -404,16 +409,43 @@ class _AmountInputTileState extends State<_AmountInputTile> {
 
   @override
   Widget build(BuildContext context) {
+    final isChecked = widget.value > 0;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundLight,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderLight, width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: () {
+              if (isChecked) {
+                widget.onChanged(0.0);
+                _ctrl.text = '';
+              } else {
+                widget.onChanged(0.0);
+              }
+            },
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isChecked ? const Color(0xFF3B82F6) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isChecked ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+                  width: 2,
+                ),
+              ),
+              child: isChecked
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 12),
           Text(
             widget.member.userAvatar.isNotEmpty
                 ? widget.member.userAvatar
@@ -457,23 +489,25 @@ class _AmountInputTileState extends State<_AmountInputTile> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide:
-                      const BorderSide(color: AppTheme.borderLight),
+                      const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(
-                      color: AppTheme.primaryPurple, width: 1.5),
+                      color: Color(0xFF3B82F6), width: 1.5),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide:
-                      const BorderSide(color: AppTheme.borderLight),
+                      const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 10),
               ),
-              onChanged: (v) =>
-                  widget.onChanged(double.tryParse(v) ?? 0.0),
+              onChanged: (v) {
+                final doubleVal = double.tryParse(v) ?? 0.0;
+                widget.onChanged(doubleVal);
+              },
             ),
           ),
         ],

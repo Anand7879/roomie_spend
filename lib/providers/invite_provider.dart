@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/group_invite_model.dart';
 import '../models/group_member_model.dart';
+import '../models/join_request_model.dart';
 import '../services/invite_service.dart';
 import 'auth_provider.dart';
+import 'group_detail_provider.dart';
 
 // ─── Service Provider ─────────────────────────────────────────────────────
 
@@ -142,4 +145,42 @@ final inviteProvider = NotifierProvider<InviteNotifier, InviteState>(
 final groupMembersProvider = StreamProvider.autoDispose.family<List<GroupMemberModel>, String>((ref, groupId) {
   final service = ref.read(inviteServiceProvider);
   return service.watchGroupMembers(groupId);
+});
+
+// ─── Join Requests Streams ────────────────────────────────────────────────
+
+/// Streams total unread pending join requests for all groups the logged-in user admin-manages.
+final adminPendingRequestsCountProvider = StreamProvider.autoDispose<int>((ref) {
+  final authState = ref.watch(authStateNotifierProvider);
+  if (authState is! AuthAuthenticated) return Stream.value(0);
+  final uid = authState.user.uid;
+  
+  final groupsAsync = ref.watch(userGroupsProvider);
+  return groupsAsync.when(
+    data: (groups) {
+      // Find UIDs of groups where this user is the creator/admin
+      final adminGroupIds = groups
+          .where((g) => g.createdBy == uid)
+          .map((g) => g.id)
+          .toList();
+      
+      if (adminGroupIds.isEmpty) return Stream.value(0);
+      
+      // Query pending requests for those admin groups in real time
+      return FirebaseFirestore.instance
+          .collection('joinRequests')
+          .where('status', isEqualTo: 'pending')
+          .where('groupId', whereIn: adminGroupIds)
+          .snapshots()
+          .map((snap) => snap.docs.length);
+    },
+    loading: () => Stream.value(0),
+    error: (_, __) => Stream.value(0),
+  );
+});
+
+/// Streams pending requests for a specific group.
+final pendingGroupRequestsProvider = StreamProvider.autoDispose.family<List<JoinRequestModel>, String>((ref, groupId) {
+  final service = ref.read(inviteServiceProvider);
+  return service.watchPendingRequests(groupId);
 });

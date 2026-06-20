@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/invite_provider.dart';
-import '../groups/group_details/group_details_screen.dart';
+import 'request_access_screen.dart';
 
 class JoinByCodeScreen extends ConsumerStatefulWidget {
   const JoinByCodeScreen({super.key});
@@ -68,50 +68,30 @@ class _JoinByCodeScreenState extends ConsumerState<JoinByCodeScreen>
     setState(() => _isProcessing = true);
     HapticFeedback.mediumImpact();
     
-    await ref.read(inviteProvider.notifier).joinGroupViaInvite(code);
+    final invite = await ref.read(inviteProvider.notifier).verifyInviteCode(code);
+    
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+
+    if (invite == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid or expired invite code'),
+          backgroundColor: AppTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => RequestAccessScreen(invite: invite),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<InviteState>(inviteProvider, (_, next) {
-      if (!mounted) return;
-      
-      setState(() => _isProcessing = false);
-      
-      if (next is InviteSuccess) {
-        HapticFeedback.lightImpact();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => GroupDetailsScreen(
-              groupId: next.groupId,
-              groupName: next.groupName,
-              groupIcon: next.groupIcon,
-            ),
-          ),
-        );
-        
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(next.message),
-                backgroundColor: AppTheme.successGreen,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        });
-      } else if (next is InviteFailure) {
-        HapticFeedback.vibrate();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.message),
-            backgroundColor: AppTheme.errorRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    });
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,

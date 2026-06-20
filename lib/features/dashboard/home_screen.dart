@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/stats_provider.dart';
+import '../../providers/invite_provider.dart';
 import '../../models/group_model.dart';
 import '../../models/activity_model.dart';
 import '../../models/stats_model.dart';
@@ -90,6 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final authState = ref.watch(authStateNotifierProvider);
     final stats = ref.watch(statsProvider);
     final groups = ref.watch(groupProvider);
+    final pendingCount = ref.watch(adminPendingRequestsCountProvider).value ?? 0;
     final activitiesAsync = ref.watch(recentActivitiesProvider);
 
     String userName = "Anand Patel";
@@ -133,7 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Header ──
-                      _buildHeader(userName, avatarEmoji, context),
+                      _buildHeader(userName, avatarEmoji, context, pendingCount),
                       const SizedBox(height: 18),
 
                       // ── Balance Card ──
@@ -229,7 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ─────────────────────────────────────────────────────────────────────────
   // HEADER
   // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildHeader(String name, String avatar, BuildContext context) {
+  Widget _buildHeader(String name, String avatar, BuildContext context, int pendingCount) {
     return Row(
       children: [
         // Avatar
@@ -357,28 +359,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   size: 22,
                 ),
               ),
-              Positioned(
-                right: 4,
-                top: 4,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
+              if (pendingCount > 0)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$pendingCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -1188,7 +1191,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         activity.type == ActivityType.settlementCompleted;
     final isNeutral = activity.type == ActivityType.groupCreated ||
         activity.type == ActivityType.memberJoined ||
-        activity.type == ActivityType.reminderSent;
+        activity.type == ActivityType.reminderSent ||
+        activity.type == ActivityType.joinRequestCreated ||
+        activity.type == ActivityType.joinRequestApproved ||
+        activity.type == ActivityType.joinRequestDenied;
 
     final iconData = _getActivityIcon(activity.type);
     final iconColor = _getActivityColor(activity.type);
@@ -1199,73 +1205,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ? const Color(0xFF22C55E)
             : const Color(0xFFEF4444);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () {
+        if (activity.groupId.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => GroupDetailsScreen(
+                groupId: activity.groupId,
+                groupName: activity.groupName,
+                groupIcon: '',
+              ),
             ),
-            child: Icon(iconData, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.025),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconData, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${activity.description} • ${_timeAgo(activity.timestamp)}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
               children: [
-                Text(
-                  activity.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppTheme.textPrimary,
+                if (activity.amount != null)
+                  Text(
+                    '₹${activity.amount!.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: amountColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${activity.description} • ${_timeAgo(activity.timestamp)}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded,
+                    color: Color(0xFF9CA3AF), size: 17),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            children: [
-              if (activity.amount != null)
-                Text(
-                  '₹${activity.amount!.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: amountColor,
-                  ),
-                ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF9CA3AF), size: 17),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1555,6 +1576,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return Icons.receipt_long_rounded;
       case ActivityType.receiptScanned:
         return Icons.document_scanner_outlined;
+      case ActivityType.joinRequestCreated:
+        return Icons.person_add_alt_1_rounded;
+      case ActivityType.joinRequestApproved:
+        return Icons.how_to_reg_rounded;
+      case ActivityType.joinRequestDenied:
+        return Icons.person_add_disabled_rounded;
     }
   }
 
@@ -1578,6 +1605,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return Colors.blue;
       case ActivityType.receiptScanned:
         return AppTheme.secondaryViolet;
+      case ActivityType.joinRequestCreated:
+        return Colors.orange;
+      case ActivityType.joinRequestApproved:
+        return AppTheme.successGreen;
+      case ActivityType.joinRequestDenied:
+        return AppTheme.errorRed;
     }
   }
 
@@ -1749,9 +1782,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _showNotifications(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('You have 3 pending settlements to confirm.')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ActivityHistoryScreen(),
+      ),
     );
   }
 
